@@ -11,11 +11,12 @@ const eventBlink: Schema = new Schema({
   eventLocation: { type: String, required: true },
   eventSeats: { type: String, required: true },
   eventPrice: { type: String, required: true },
+  eventPubKey: { type: String },
   eventDescription: { type: String, required: true },
 });
 
 // Check if the model is already compiled
 const EventDataBlink =
-  mongoose.models.Event || mongoose.model("Event", eventBlink);
+  mongoose.models.EventDetails || mongoose.model("EventDetails", eventBlink);
 
 export default EventDataBlink;

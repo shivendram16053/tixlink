@@ -13,6 +13,7 @@ interface EventDetails {
   eventLocation: string;
   eventSeats : string;
   eventPrice :string;
+  eventPubKey :string;
   eventDescription: string;
 }
 
@@ -34,6 +35,7 @@ export const POST = async (req: Request) => {
       !eventDetails.eventDate ||
       !eventDetails.eventTime ||
       !eventDetails.eventLocation ||
+      !eventDetails.eventPubKey ||
       !eventDetails.eventDescription
     ) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
@@ -53,6 +55,7 @@ export const POST = async (req: Request) => {
       eventLocation: eventDetails.eventLocation,
       eventSeats: eventDetails.eventSeats,
       eventPrice: eventDetails.eventPrice,
+      eventPubKey: eventDetails.eventPubKey,
       eventDescription: eventDetails.eventDescription,
     });
 

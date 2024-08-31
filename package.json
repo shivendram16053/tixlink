@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@solana/actions": "^1.6.4",
+    "@solana/spl-token": "^0.4.8",
     "@solana/web3.js": "^1.95.3",
     "mongoose": "^8.6.0",
     "nanoid": "^5.0.7",

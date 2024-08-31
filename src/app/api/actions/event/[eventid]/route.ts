@@ -1,11 +1,29 @@
 import {
+  ActionError,
   ActionGetResponse,
   ActionPostResponse,
   ACTIONS_CORS_HEADERS,
+  createPostResponse,
 } from "@solana/actions";
-
 import EventDataBlink from "@/app/(mongo)/EventSchema";
 import { connectToDatabase } from "@/app/(mongo)/db";
+import {
+  clusterApiUrl,
+  Connection,
+  PublicKey,
+  Transaction,
+  SystemProgram,
+  LAMPORTS_PER_SOL,
+} from "@solana/web3.js";
+import {
+  TOKEN_PROGRAM_ID,
+  createTransferInstruction,
+  AccountLayout,
+} from "@solana/spl-token";
+import UserBlink from "@/app/(mongo)/UserSchema";
+import { customAlphabet } from "nanoid";
+
+const connection = new Connection(clusterApiUrl("mainnet-beta"), "confirmed");
 
 export const GET = async (req: Request) => {
   await connectToDatabase();
@@ -29,14 +47,14 @@ export const GET = async (req: Request) => {
       Date and Time : ${eventDetails.eventDate} , ${eventDetails.eventTime} 
       Location : ${eventDetails.eventLocation}
       Number of person allowed : ${eventDetails.eventSeats}
-      Ticket price in Sol : ${eventDetails.eventPrice}
+      Ticket price in Send : ${eventDetails.eventPrice}
       More Info : ${eventDetails.eventDescription}`,
     label: "Join the Event",
     links: {
       actions: [
         {
           label: "Join the event",
-          href: `/api/actions/event/${eventId}?name={name}&email={email}`,
+          href: `/api/actions/event/${eventId}?name={name}&email={email}&role={choice}`,
           parameters: [
             {
               type: "text",
@@ -49,6 +67,16 @@ export const GET = async (req: Request) => {
               name: "email",
               label: "Enter Your Email",
               required: true,
+            },
+            {
+              type: "radio",
+              name: "choice",
+              label: "Choose the role for the event",
+              required: true,
+              options: [
+                { label: "Speaker", value: "Speaker" },
+                { label: "Attendee", value: "Attendee" },
+              ],
             },
           ],
         },
@@ -64,7 +92,157 @@ export const GET = async (req: Request) => {
 
 export const OPTIONS = GET;
 
+export const POST = async (req: Request) => {
+  try {
+    await connectToDatabase();
 
-export const POST = async (req:Request)=>{
-   await connectToDatabase();
-}
+    const body = (await req.json()) as { account: string; signature: string };
+    const userPubkey = new PublicKey(body.account); // Ensure this is a PublicKey
+    const url = new URL(req.url);
+    const eventId = url.pathname.split("/")[4];
+    const name = url.searchParams.get("name") ?? "";
+    const email = url.searchParams.get("email") ?? "";
+    const role = url.searchParams.get("role") ?? "";
+    const generateRandomId = customAlphabet(
+      "abcdefghijklmnopqrstuvwxyz123456789",
+      8
+    );
+    const randomId = generateRandomId();
+
+    const eventDetails = await EventDataBlink.findOne({ eventId: eventId });
+
+    if (!eventDetails) {
+      return new Response("Event not found", { status: 404 });
+    }
+
+    // Fetch the number of registered users for this event
+    const registeredUsersCount = await UserBlink.countDocuments({ eventId });
+
+    // Check if the number of participants has reached the limit
+    if (registeredUsersCount >= eventDetails.eventSeats) {
+      let actionError: ActionError = { message: "Seats are full for event" };
+      return new Response(JSON.stringify(actionError), {
+        status: 400,
+        headers: ACTIONS_CORS_HEADERS,
+      });
+    }
+
+    const fees = eventDetails.eventPrice;
+    const tokenMintAddress = new PublicKey(
+      "SENDdRQtYMWaQrBroBrJ2Q53fgVuq95CV9UPGEvpCxa"
+    );
+
+    // Fetch all token accounts for the user
+    const tokenAccounts = await connection.getTokenAccountsByOwner(userPubkey, {
+      programId: TOKEN_PROGRAM_ID,
+    });
+
+    let userTokenAccount: PublicKey | null = null;
+    let userBalance = 0;
+
+    // Find the associated token account for the specified mint
+    for (const tokenAccountInfo of tokenAccounts.value) {
+      const accountData = AccountLayout.decode(tokenAccountInfo.account.data);
+      const mintPublicKey = new PublicKey(accountData.mint);
+
+      if (mintPublicKey.equals(tokenMintAddress)) {
+        userTokenAccount = tokenAccountInfo.pubkey;
+        userBalance = Number(accountData.amount);
+        break;
+      }
+    }
+
+    if (!userTokenAccount) {
+      let actionError: ActionError = { message: "You don't have a token account for SEND" };
+      return new Response(JSON.stringify(actionError), {
+        status: 400,
+        headers: ACTIONS_CORS_HEADERS,
+      });
+    }
+
+    // Check if the user has enough balance
+    if (userBalance < parseFloat(fees)) {
+      let actionError: ActionError = { message: "You don't have enough SEND for fees" };
+      return new Response(JSON.stringify(actionError), {
+        status: 400,
+        headers: ACTIONS_CORS_HEADERS,
+      });
+    }
+
+    // Ensure eventDetails.eventPubKey is a PublicKey
+    const organizerPubkey = new PublicKey(eventDetails.eventPubKey);
+    const organizerTokenAccounts = await connection.getTokenAccountsByOwner(organizerPubkey, {
+      programId: TOKEN_PROGRAM_ID,
+    });
+
+    let organizerTokenAccount: PublicKey | null = null;
+
+    // Find the associated token account for the specified mint
+    for (const tokenAccountInfo of organizerTokenAccounts.value) {
+      const accountData = AccountLayout.decode(tokenAccountInfo.account.data);
+      const mintPublicKey = new PublicKey(accountData.mint);
+
+      if (mintPublicKey.equals(tokenMintAddress)) {
+        organizerTokenAccount = tokenAccountInfo.pubkey;
+        break;
+      }
+    }
+
+    if (!organizerTokenAccount) {
+      let actionError: ActionError = { message: "Organizer does not have a token account for SEND" };
+      return new Response(JSON.stringify(actionError), {
+        status: 400,
+        headers: ACTIONS_CORS_HEADERS,
+      });
+    }
+
+    // Create the transaction
+    const transaction = new Transaction().add(
+      createTransferInstruction(
+        userTokenAccount, // Source account (user's token account)
+        organizerTokenAccount, // Destination account (organizer's token account)
+        userPubkey, // Owner of the source account
+        Number(fees) * 1000000, // Number of tokens to transfer
+        [],
+        TOKEN_PROGRAM_ID
+      )
+    );
+
+    transaction.feePayer = userPubkey;
+    transaction.recentBlockhash = (
+      await connection.getLatestBlockhash()
+    ).blockhash;
+
+    // Save the user to the UserSchema
+  
+    const payload: ActionPostResponse = await createPostResponse({
+      fields: {
+        transaction,
+        message: `Thanks ${name} for registering for the event`,
+        links: {
+          next: {
+            type: "post",
+            href: `/api/actions/saveUserData?name=${name}&email=${email}&role=${role}&userId=${randomId}&eventId=${eventId}&eventLogo=${eventDetails.eventImage}`,
+            
+          },
+        },
+      },
+    });
+
+    
+
+    return new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: ACTIONS_CORS_HEADERS,
+    });
+  } catch (error) {
+    console.error("Error processing POST request:", error);
+    return new Response(
+      JSON.stringify({ error: "Failed to process request" }),
+      {
+        status: 500,
+        headers: ACTIONS_CORS_HEADERS,
+      }
+    );
+  }
+};

@@ -12,6 +12,7 @@ interface EventDetails {
   eventLocation: string;
   eventSeats : string;
   eventPrice :string;
+  eventPubKey :string;
   eventDescription: string;
 }
 
@@ -26,6 +27,7 @@ const Page: React.FC = () => {
     eventLocation: "",
     eventSeats: "",
     eventPrice: "",
+    eventPubKey: "",
     eventDescription: "",
 
   });
@@ -105,6 +107,7 @@ const Page: React.FC = () => {
       eventLocation: "",
       eventSeats: "",
       eventPrice: "",
+      eventPubKey: "",
       eventDescription: "",
     });
   };
@@ -174,6 +177,21 @@ const Page: React.FC = () => {
                   placeholder="Enter Image Url"
                 />
               </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="eventPubKey"
+                  className="block font-semibold mb-2"
+                >
+                  Wallet Address to Recieve Fees
+                </label>
+                <input
+                  type="text"
+                  id="eventPubKey"
+                  className="w-full p-2 border border-gray-300 rounded placeholder-black text-black"
+                  onChange={handleChange('eventPubKey')}
+                  placeholder="Enter Wallet Address"
+                />
+              </div>
 
               <div className="mb-4">
                 <label
@@ -200,12 +218,12 @@ const Page: React.FC = () => {
                   Ticket Price (if none = 0)
                 </label>
                 <input
-                  type="email"
-                  id="organizerEmail"
+                  type="number"
+                  id="eventPrice"
                   className="w-full p-2 border border-gray-300 rounded placeholder-black text-black"
                   placeholder="Enter price in SEND token"
-                  value={eventDetails.eventSeats}
-                  onChange={handleChange("eventSeats")}
+                  value={eventDetails.eventPrice}
+                  onChange={handleChange("eventPrice")}
                 />
               </div>
 
