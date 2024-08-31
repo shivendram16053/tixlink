@@ -1,3 +1,4 @@
+import { connectToDatabase } from "@/app/(mongo)/db";
 import UserBlink from "@/app/(mongo)/UserSchema";
 import {
   createActionHeaders,
@@ -20,6 +21,7 @@ export const GET = async (req: Request) => {
 export const OPTIONS = GET;
 
 export const POST = async (req: Request) => {
+  await connectToDatabase();
   try {
     const body: NextActionPostRequest = await req.json();
     const url = new URL(req.url);
@@ -63,6 +65,8 @@ export const POST = async (req: Request) => {
         }
       }
 
+      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${userId}`;
+
       const transaction = await connection.getParsedTransaction(
         signature,
         "confirmed",
@@ -71,10 +75,10 @@ export const POST = async (req: Request) => {
       const payload: CompletedAction = {
         type: "completed",
         title: "Registration successful!",
-        icon:eventImage,
+        icon:qrCodeUrl,
         label: "Complete!",
         description:
-          `You are now registered for the event`,
+          `You are now registered for the event . Save this QR for verification`,
       };
   
       return Response.json(payload, {
