@@ -5,7 +5,6 @@ import {
   ACTIONS_CORS_HEADERS,
   createPostResponse,
 } from "@solana/actions";
-import EventDataBlink from "@/app/(mongo)/EventSchema";
 import { connectToDatabase } from "@/app/(mongo)/db";
 import {
   clusterApiUrl,
@@ -22,7 +21,7 @@ const MY_PUB_KEY = "6rSrLGuhPEpxGqmbZzV1ZttwtLXzGx8V2WEACXd4qnVH";
 export const GET = async (req: Request) => {
   
   const payload: ActionGetResponse = {
-    icon: `http://localhost:3000/logo.png`,
+    icon: `http://tixlink.vercel.app/logo.png`,
     title: "Create Your Event Here",
     description: "Submit all required details",
     label: "Create Event",

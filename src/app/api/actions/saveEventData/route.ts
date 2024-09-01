@@ -59,7 +59,7 @@ export const POST = async (req: Request) => {
         }
       }
 
-      const blinkUrl = `https://localhost:3000/event/${eventId}`;
+      const blinkUrl = `https://tixlink.vercel.app/event/${eventId}`;
       const twitterShareUrl = `https://twitter.com/intent/tweet?text=Check%20out%20my%20new%20Blink%20link:%20${encodeURIComponent(
         blinkUrl
       )}`;
@@ -97,7 +97,7 @@ export const POST = async (req: Request) => {
         icon: qrCodeUrl,
         label: "Event Created",
         description: `Your Blink Url to share is
-          https://localhost:3000/event/${eventId}
+          https://tixlink.vercel.app/event/${eventId}
           Or just scan the qrcode to share`,
       };
 
