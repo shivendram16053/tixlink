@@ -6,7 +6,7 @@ export default function Home() {
     <main className="flex flex-col items-center justify-center h-screen mt-[-120px] bg-black text-white">
       {/* Hero Section */}
       <section className="text-center px-6 flex flex-col justify-center items-center">
-        <h1 className="text-7xl mb-4 text-transparent  text-blue-100">
+        <h1 className="text-7xl mb-4 text-blue-100   ">
         Empowering your events with
         </h1>
         <h1 className="text-7xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r h-20 from-violet-600 via-cyan-500 to-blue-500">
