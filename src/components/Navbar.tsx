@@ -11,7 +11,7 @@ const Navbar = () => {
 
       <div className="nav-items">
         <ul>
-          <li><Link href="https://dial.to/?action=solana-action%3Ahttps%3A%2F%2Ftixlink.vercel.app%2Fapi%2Factions%2Fcreate&cluster=devnet">Create a New Event</Link></li>
+          <li><Link href="https://dial.to/?action=solana-action%3Ahttps%3A%2F%2Ftixlink.vercel.app%2Fapi%2Factions%2Fcreate&cluster=mainnet">Create a New Event</Link></li>
         </ul>
       </div>
     </div>
