@@ -22,6 +22,9 @@ import {
 } from "@solana/spl-token";
 import UserBlink from "@/app/(mongo)/UserSchema";
 import { customAlphabet } from "nanoid";
+import { BlinksightsClient } from 'blinksights-sdk';
+
+const client = new BlinksightsClient('b47f052ea8db76797497d7dd6bded8e4c364722939d9c48ea878ada9f42237fb');
 
 const connection = new Connection(clusterApiUrl("mainnet-beta"), "confirmed");
 
@@ -43,7 +46,7 @@ export const GET = async (req: Request) => {
     });
   }
 
-  const payload: ActionGetResponse = {
+  const payload = await client.createActionGetResponseV1(req.url, {
     icon: `${eventDetails.eventImage}`,
     title: eventDetails.eventName,
     description: `So here are the details of the event
@@ -87,7 +90,7 @@ export const GET = async (req: Request) => {
       ],
     },
     type: "action",
-  };
+  }) as ActionGetResponse;
 
   return new Response(JSON.stringify(payload), {
     headers: ACTIONS_CORS_HEADERS,
@@ -101,6 +104,7 @@ export const POST = async (req: Request) => {
     await connectToDatabase();
 
     const body = (await req.json()) as { account: string; signature: string };
+    client.trackActionV2(body.account, req.url);
     const userPubkey = new PublicKey(body.account); // Ensure this is a PublicKey
     const url = new URL(req.url);
     const eventId = url.pathname.split("/")[4];

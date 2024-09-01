@@ -14,13 +14,16 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import { customAlphabet } from "nanoid";
+import { BlinksightsClient } from 'blinksights-sdk';
+
+const client = new BlinksightsClient('b47f052ea8db76797497d7dd6bded8e4c364722939d9c48ea878ada9f42237fb');
 
 const connection = new Connection(clusterApiUrl("mainnet-beta"), "confirmed");
 const MY_PUB_KEY = "6rSrLGuhPEpxGqmbZzV1ZttwtLXzGx8V2WEACXd4qnVH";
 
 export const GET = async (req: Request) => {
   
-  const payload: ActionGetResponse = {
+  const payload = await client.createActionGetResponseV1(req.url, {
     icon: `http://tixlink.vercel.app/logo.png`,
     title: "Create Your Event Here",
     description: "Submit all required details",
@@ -62,44 +65,43 @@ export const GET = async (req: Request) => {
               required: true,
             },
             {
-              type:"text",
+              type: "text",
               name: "location",
               label: "Enter Event location",
               required: true,
             },
             {
-              type:"number",
+              type: "number",
               name: "seats",
               label: "Number of Persons Allowed",
               required: true,
             },
             {
-                type: "radio",
-                name: "choice",
-                label: "Choose the coin for fees",
-                options: [
-                  { label: "SOL", value: "sol" },
-                  { label: "SEND", value: "send" },
-                ],
-              },
+              type: "radio",
+              name: "choice",
+              label: "Choose the coin for fees",
+              options: [
+                { label: "SOL", value: "sol" },
+                { label: "SEND", value: "send" },
+              ],
+            },
             {
-              type:"number",
+              type: "number",
               name: "fees",
               label: "Entry Fees (if applicable)",
             },
             {
-              type:"textarea",
+              type: "textarea",
               name: "description",
               label: "Enter more Info",
               required: true,
             },
-
           ],
         },
       ],
     },
     type: "action",
-  };
+  }) as ActionGetResponse;
 
   return new Response(JSON.stringify(payload), {
     headers: ACTIONS_CORS_HEADERS,
@@ -113,6 +115,7 @@ export const POST = async (req: Request) => {
       await connectToDatabase();
   
       const body = (await req.json()) as { account: string; signature: string };
+      client.trackActionV2(body.account, req.url);
       const eventPubKey = new PublicKey(body.account); // Ensure this is a PublicKey
       const url = new URL(req.url);
       const name = url.searchParams.get("name") ?? "";
